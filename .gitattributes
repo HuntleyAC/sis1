@@ -1,0 +1,2 @@
+# Keep LF line endings on every OS so `gofmt -l .` stays clean after checkout.
+* text=auto eol=lf
