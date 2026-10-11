@@ -45,6 +45,18 @@ func (r Result) Clone() Result {
 	return r
 }
 
+// Equal reports whether r and o hold the same statistics. Result cannot be
+// compared with == because it contains a slice; WordFreq can, so the slices
+// are compared element by element with slices.Equal.
+func (r Result) Equal(o Result) bool {
+	return r.Characters == o.Characters &&
+		r.Words == o.Words &&
+		r.UniqueWords == o.UniqueWords &&
+		r.Sentences == o.Sentences &&
+		r.AvgWordLength == o.AvgWordLength &&
+		slices.Equal(r.TopWords, o.TopWords)
+}
+
 // TextAnalyzer validates and analyzes text. The zero value is ready to use
 // and falls back to DefaultTopN and DefaultMaxLen.
 type TextAnalyzer struct {
@@ -202,7 +214,7 @@ func isWordPart(rs []rune, i int) bool {
 }
 
 func isLetterOrDigit(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r)
+	return unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
 func isApostrophe(r rune) bool {

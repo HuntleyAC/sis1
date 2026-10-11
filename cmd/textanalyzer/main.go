@@ -20,31 +20,29 @@ import (
 	"sis-textanalyzer/internal/task"
 )
 
+// Compile-time checks: the build fails right here if a type stops
+// implementing an interface that the service depends on.
+var (
+	_ service.Processor  = analyzer.TextAnalyzer{}
+	_ service.Repository = (*store.MemoryStore)(nil)
+)
+
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	topN := flag.Int("top", analyzer.DefaultTopN, "number of most frequent words to show")
+	reprocess := flag.Bool("reprocess", false, "try to process each completed task again (shows that the lifecycle rejects it)")
+	flag.Parse() // on an unknown flag, prints usage and exits with code 2
+
+	os.Exit(run(flag.Args(), *topN, *reprocess, os.Stdin, os.Stdout, os.Stderr))
 }
 
-// run is separated from main so it returns an exit code instead of calling
-// os.Exit, which keeps main trivial.
-func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-	fs := flag.NewFlagSet("textanalyzer", flag.ContinueOnError)
-	fs.SetOutput(stderr)
-	fs.Usage = func() {
-		fmt.Fprintln(stderr, "usage: textanalyzer [flags] [text ...]")
-		fmt.Fprintln(stderr, "With no text arguments, standard input is analyzed.")
-		fs.PrintDefaults()
-	}
-	topN := fs.Int("top", analyzer.DefaultTopN, "number of most frequent words to show")
-	reprocess := fs.Bool("reprocess", false, "try to process each completed task again (shows that the lifecycle rejects it)")
-	if err := fs.Parse(args); err != nil {
-		return 2
-	}
-	if *topN < 1 {
+// run does the actual work and returns the exit code. It receives
+// io.Reader / io.Writer instead of using os.Stdin / os.Stdout directly.
+func run(inputs []string, topN int, reprocess bool, stdin io.Reader, stdout, stderr io.Writer) int {
+	if topN < 1 {
 		fmt.Fprintln(stderr, "error: -top must be at least 1")
 		return 2
 	}
 
-	inputs := fs.Args()
 	if len(inputs) == 0 {
 		data, err := io.ReadAll(stdin)
 		if err != nil {
@@ -58,7 +56,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		inputs = []string{strings.TrimSpace(text)}
 	}
 
-	proc := analyzer.TextAnalyzer{TopN: *topN, MaxLen: analyzer.DefaultMaxLen}
+	proc := analyzer.TextAnalyzer{TopN: topN, MaxLen: analyzer.DefaultMaxLen}
 	svc, err := service.New(store.NewMemoryStore(), proc)
 	if err != nil {
 		fmt.Fprintf(stderr, "error: %v\n", err)
@@ -81,7 +79,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 	for _, t := range svc.List() {
 		printTask(stdout, t)
-		if *reprocess && t.State == task.StateCompleted {
+		if reprocess && t.State == task.StateCompleted {
 			if _, err := svc.Process(t.ID); err != nil {
 				fmt.Fprintf(stdout, "  reprocess:    rejected (%v)\n", err)
 			}

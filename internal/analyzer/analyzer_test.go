@@ -2,7 +2,6 @@ package analyzer
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -109,7 +108,7 @@ func TestProcess(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Process(%q) unexpected error: %v", tc.input, err)
 			}
-			if !reflect.DeepEqual(got, tc.want) {
+			if !got.Equal(tc.want) {
 				t.Fatalf("Process(%q)\n got  %+v\n want %+v", tc.input, got, tc.want)
 			}
 		})
@@ -130,14 +129,35 @@ func TestProcess_IsDeterministic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for range 10 {
+	for i := 0; i < 10; i++ {
 		got, err := a.Process(input)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, first) {
+		if !got.Equal(first) {
 			t.Fatalf("results differ between runs:\n%+v\n%+v", first, got)
 		}
+	}
+}
+
+func TestResultEqual(t *testing.T) {
+	base := Result{Words: 2, TopWords: []WordFreq{{"go", 2}}}
+	tests := []struct {
+		name  string
+		other Result
+		want  bool
+	}{
+		{"identical", Result{Words: 2, TopWords: []WordFreq{{"go", 2}}}, true},
+		{"different field", Result{Words: 3, TopWords: []WordFreq{{"go", 2}}}, false},
+		{"different top word", Result{Words: 2, TopWords: []WordFreq{{"go", 1}}}, false},
+		{"missing top words", Result{Words: 2}, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := base.Equal(tc.other); got != tc.want {
+				t.Fatalf("Equal = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

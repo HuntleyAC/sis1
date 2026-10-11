@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -101,7 +100,9 @@ func TestGet_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if !reflect.DeepEqual(got, created) {
+	// Task is comparable with ==: all its fields are comparable (Result is a
+	// pointer). Both tasks are pending, so both Result pointers are nil.
+	if got != created {
 		t.Fatalf("Get = %+v, want %+v", got, created)
 	}
 }
@@ -148,7 +149,7 @@ func TestProcess_Success(t *testing.T) {
 	if processed.State != task.StateCompleted {
 		t.Fatalf("State = %s, want completed", processed.State)
 	}
-	if processed.Result == nil || !reflect.DeepEqual(*processed.Result, want) {
+	if processed.Result == nil || !processed.Result.Equal(want) {
 		t.Fatalf("Result = %+v, want %+v", processed.Result, want)
 	}
 
@@ -160,7 +161,7 @@ func TestProcess_Success(t *testing.T) {
 	if stored.State != task.StateCompleted {
 		t.Fatalf("stored State = %s, want completed", stored.State)
 	}
-	if stored.Result == nil || !reflect.DeepEqual(*stored.Result, want) {
+	if stored.Result == nil || !stored.Result.Equal(want) {
 		t.Fatalf("stored Result = %+v, want %+v", stored.Result, want)
 	}
 }
@@ -185,7 +186,9 @@ func TestProcess_AlreadyCompleted(t *testing.T) {
 
 	// The rejected operation must leave the task untouched.
 	stored, _ := svc.Get(created.ID)
-	if !reflect.DeepEqual(stored, first) {
+	// stored != first would compare Result pointers (different copies), so
+	// compare the state and the result contents instead.
+	if stored.State != first.State || stored.Result == nil || !stored.Result.Equal(*first.Result) {
 		t.Fatalf("task changed after rejected reprocess:\n got  %+v\n want %+v", stored, first)
 	}
 }

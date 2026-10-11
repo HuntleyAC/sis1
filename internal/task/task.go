@@ -98,10 +98,15 @@ func (t *Task) Fail(cause error) error {
 }
 
 // Clone returns a deep copy of t that shares no memory with the original.
-func (t Task) Clone() Task {
+//
+// It has a pointer receiver like the other Task methods (one receiver kind
+// per type). A plain copy (c := *t) is not enough, because Result is a
+// pointer and Result.TopWords is a slice: both would still be shared.
+func (t *Task) Clone() Task {
+	c := *t
 	if t.Result != nil {
 		r := t.Result.Clone()
-		t.Result = &r
+		c.Result = &r
 	}
-	return t
+	return c
 }

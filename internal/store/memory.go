@@ -54,7 +54,10 @@ func (s *MemoryStore) Get(id task.ID) (task.Task, error) {
 func (s *MemoryStore) List() []task.Task {
 	out := make([]task.Task, 0, len(s.order))
 	for _, id := range s.order {
-		out = append(out, s.tasks[id].Clone())
+		// Clone has a pointer receiver and map elements are not addressable,
+		// so s.tasks[id].Clone() would not compile: copy into a variable first.
+		t := s.tasks[id]
+		out = append(out, t.Clone())
 	}
 	return out
 }
