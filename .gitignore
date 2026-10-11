@@ -1,0 +1,15 @@
+# Build output
+*.exe
+*.test
+*.out
+/bin/
+/textanalyzer
+
+# Coverage
+coverage.*
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
