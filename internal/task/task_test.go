@@ -25,7 +25,6 @@ func TestTransitionTo(t *testing.T) {
 		{StateProcessing, StateFailed}:    true,
 	}
 
-	// Every pair of states is checked: only the three transitions above are allowed.
 	for _, from := range all {
 		for _, to := range all {
 			wantOK := allowed[[2]State{from, to}]

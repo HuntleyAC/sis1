@@ -1,8 +1,3 @@
-// Package analyzer contains the domain logic of the application: validating
-// a piece of text and computing statistics about it.
-//
-// Everything here is pure and deterministic: the same input always produces
-// the same Result, and nothing is stored or shared between calls.
 package analyzer
 
 import (
@@ -16,38 +11,29 @@ import (
 )
 
 const (
-	// DefaultTopN is the number of most frequent words reported by default.
-	DefaultTopN = 5
-	// DefaultMaxLen is the default maximum input length, in characters (runes).
+	DefaultTopN   = 5
 	DefaultMaxLen = 10_000
 )
 
-// WordFreq is a word together with the number of times it occurs.
 type WordFreq struct {
 	Word  string
 	Count int
 }
 
-// Result holds the statistics computed for one text.
 type Result struct {
-	Characters    int        // Unicode characters (runes), including spaces and punctuation
-	Words         int        // total number of words
-	UniqueWords   int        // number of distinct words (case-insensitive)
-	Sentences     int        // number of sentences
-	AvgWordLength float64    // average word length in characters, rounded to 2 decimals
-	TopWords      []WordFreq // most frequent words: count desc, then alphabetically
+	Characters    int
+	Words         int
+	UniqueWords   int
+	Sentences     int
+	AvgWordLength float64
+	TopWords      []WordFreq
 }
 
-// Clone returns a deep copy of r. Result contains a slice, so a plain
-// assignment would share the TopWords backing array with the original.
 func (r Result) Clone() Result {
 	r.TopWords = slices.Clone(r.TopWords)
 	return r
 }
 
-// Equal reports whether r and o hold the same statistics. Result cannot be
-// compared with == because it contains a slice; WordFreq can, so the slices
-// are compared element by element with slices.Equal.
 func (r Result) Equal(o Result) bool {
 	return r.Characters == o.Characters &&
 		r.Words == o.Words &&
@@ -57,20 +43,15 @@ func (r Result) Equal(o Result) bool {
 		slices.Equal(r.TopWords, o.TopWords)
 }
 
-// TextAnalyzer validates and analyzes text. The zero value is ready to use
-// and falls back to DefaultTopN and DefaultMaxLen.
 type TextAnalyzer struct {
-	TopN   int // how many frequent words to report
-	MaxLen int // maximum accepted input length in characters
+	TopN   int
+	MaxLen int
 }
 
-// New returns a TextAnalyzer with the default settings.
 func New() TextAnalyzer {
 	return TextAnalyzer{TopN: DefaultTopN, MaxLen: DefaultMaxLen}
 }
 
-// Validate checks that input can be analyzed. It returns nil for valid input
-// or one of the Err* validation errors otherwise.
 func (a TextAnalyzer) Validate(input string) error {
 	if !utf8.ValidString(input) {
 		return ErrInvalidUTF8
@@ -87,7 +68,6 @@ func (a TextAnalyzer) Validate(input string) error {
 	return nil
 }
 
-// Process validates input and computes its statistics.
 func (a TextAnalyzer) Process(input string) (Result, error) {
 	if err := a.Validate(input); err != nil {
 		return Result{}, err
@@ -125,9 +105,6 @@ func (a TextAnalyzer) maxLen() int {
 	return a.MaxLen
 }
 
-// tokenize splits text into lowercase words. A word is a run of letters and
-// digits; apostrophes inside a word ("don't") and decimal separators inside a
-// number ("3.14", "1,000") are kept as part of the word.
 func tokenize(text string) []string {
 	rs := []rune(text)
 	var words []string
@@ -144,7 +121,7 @@ func tokenize(text string) []string {
 			continue
 		}
 		if isApostrophe(r) {
-			r = '\'' // treat "don’t" and "don't" as the same word
+			r = '\''
 		}
 		b.WriteRune(r)
 	}
@@ -152,9 +129,6 @@ func tokenize(text string) []string {
 	return words
 }
 
-// countSentences counts sentences: runs of text that contain at least one
-// word and end with '.', '!', '?' or '…' (or with the end of the text).
-// Repeated terminators such as "?!" or "..." end only one sentence.
 func countSentences(text string) int {
 	rs := []rune(text)
 	count := 0
@@ -169,13 +143,11 @@ func countSentences(text string) int {
 		}
 	}
 	if inSentence {
-		count++ // last sentence has no terminator
+		count++
 	}
 	return count
 }
 
-// topWords returns the n most frequent words, ordered by count (descending)
-// and then alphabetically, so that ties are always resolved the same way.
 func topWords(freq map[string]int, n int) []WordFreq {
 	list := make([]WordFreq, 0, len(freq))
 	for w, c := range freq {
@@ -193,8 +165,6 @@ func topWords(freq map[string]int, n int) []WordFreq {
 	return list
 }
 
-// isWordPart reports whether rs[i] belongs to a word, looking at its
-// neighbours for apostrophes and decimal separators.
 func isWordPart(rs []rune, i int) bool {
 	r := rs[i]
 	if isLetterOrDigit(r) {

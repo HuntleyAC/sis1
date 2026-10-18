@@ -61,10 +61,8 @@ func TestStore_ReturnsCopies(t *testing.T) {
 	}}
 	_ = s.Save(tk)
 
-	// Changing the value that was saved must not affect the store.
 	tk.Result.TopWords[0].Word = "changed-after-save"
 
-	// Changing a value returned by Get must not affect the store either.
 	got, _ := s.Get("task-1")
 	got.State = task.StatePending
 	got.Result.TopWords[0].Word = "changed-after-get"

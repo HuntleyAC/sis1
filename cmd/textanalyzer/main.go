@@ -1,10 +1,3 @@
-// Command textanalyzer analyzes one or more texts from the command line.
-//
-// Each argument becomes a separate task. With no arguments, the whole of
-// standard input is analyzed as a single task.
-//
-//	go run ./cmd/textanalyzer "First text." "Second text!"
-//	echo "Some text" | go run ./cmd/textanalyzer
 package main
 
 import (
@@ -20,8 +13,6 @@ import (
 	"sis-textanalyzer/internal/task"
 )
 
-// Compile-time checks: the build fails right here if a type stops
-// implementing an interface that the service depends on.
 var (
 	_ service.Processor  = analyzer.TextAnalyzer{}
 	_ service.Repository = (*store.MemoryStore)(nil)
@@ -30,13 +21,11 @@ var (
 func main() {
 	topN := flag.Int("top", analyzer.DefaultTopN, "number of most frequent words to show")
 	reprocess := flag.Bool("reprocess", false, "try to process each completed task again (shows that the lifecycle rejects it)")
-	flag.Parse() // on an unknown flag, prints usage and exits with code 2
+	flag.Parse()
 
 	os.Exit(run(flag.Args(), *topN, *reprocess, os.Stdin, os.Stdout, os.Stderr))
 }
 
-// run does the actual work and returns the exit code. It receives
-// io.Reader / io.Writer instead of using os.Stdin / os.Stdout directly.
 func run(inputs []string, topN int, reprocess bool, stdin io.Reader, stdout, stderr io.Writer) int {
 	if topN < 1 {
 		fmt.Fprintln(stderr, "error: -top must be at least 1")
@@ -49,8 +38,6 @@ func run(inputs []string, topN int, reprocess bool, stdin io.Reader, stdout, std
 			fmt.Fprintf(stderr, "error: read stdin: %v\n", err)
 			return 1
 		}
-		// Some shells (e.g. Windows PowerShell) prepend a UTF-8 byte order
-		// mark and append a newline when piping; neither is part of the text.
 		const bom = "\xef\xbb\xbf"
 		text := strings.TrimPrefix(string(data), bom)
 		inputs = []string{strings.TrimSpace(text)}
@@ -110,7 +97,6 @@ func printTask(w io.Writer, t task.Task) {
 	fmt.Fprintf(w, "  top words:    %s\n", strings.Join(top, ", "))
 }
 
-// preview shortens s to at most n characters for display.
 func preview(s string, n int) string {
 	s = strings.Join(strings.Fields(s), " ")
 	rs := []rune(s)

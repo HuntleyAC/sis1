@@ -6,14 +6,10 @@ import (
 )
 
 var (
-	// ErrNotFound is returned by repositories when no task has the given ID.
-	ErrNotFound = errors.New("task not found")
-	// ErrInvalidTransition is the sentinel wrapped by every *TransitionError.
+	ErrNotFound          = errors.New("task not found")
 	ErrInvalidTransition = errors.New("invalid state transition")
 )
 
-// TransitionError describes a rejected state change. It unwraps to
-// ErrInvalidTransition, so callers can use either errors.Is or errors.As.
 type TransitionError struct {
 	From State
 	To   State

@@ -19,8 +19,6 @@ func newTestService(t *testing.T) *Service {
 	return svc
 }
 
-// failingProcessor accepts any input but always fails to process it.
-// It lets the tests reach the "failed" state through the Processor interface.
 type failingProcessor struct{ err error }
 
 func (p failingProcessor) Validate(string) error { return nil }
@@ -38,7 +36,6 @@ func TestNew_NilDependencies(t *testing.T) {
 	}
 }
 
-// Requirement 1: successful creation.
 func TestCreate_Success(t *testing.T) {
 	svc := newTestService(t)
 
@@ -60,7 +57,6 @@ func TestCreate_Success(t *testing.T) {
 	}
 }
 
-// Requirement 2: invalid input is rejected (table-driven).
 func TestCreate_InvalidInput(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -88,7 +84,6 @@ func TestCreate_InvalidInput(t *testing.T) {
 	}
 }
 
-// Requirement 3: successful retrieval.
 func TestGet_Success(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.Create("Some text")
@@ -100,14 +95,11 @@ func TestGet_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	// Task is comparable with ==: all its fields are comparable (Result is a
-	// pointer). Both tasks are pending, so both Result pointers are nil.
 	if got != created {
 		t.Fatalf("Get = %+v, want %+v", got, created)
 	}
 }
 
-// Requirement 4: retrieving a task that does not exist.
 func TestGet_NotFound(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.Get("task-404")
@@ -124,7 +116,6 @@ func TestProcess_NotFound(t *testing.T) {
 	}
 }
 
-// Requirements 5, 6, 7: successful processing, correct result, correct state.
 func TestProcess_Success(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.Create("Hello world. Hello Go!")
@@ -153,7 +144,6 @@ func TestProcess_Success(t *testing.T) {
 		t.Fatalf("Result = %+v, want %+v", processed.Result, want)
 	}
 
-	// The stored task must also be completed and hold the same result.
 	stored, err := svc.Get(created.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -166,7 +156,6 @@ func TestProcess_Success(t *testing.T) {
 	}
 }
 
-// Requirement 8: invalid operation, processing a task that is already completed.
 func TestProcess_AlreadyCompleted(t *testing.T) {
 	svc := newTestService(t)
 	created, _ := svc.Create("Process me once.")
@@ -184,10 +173,7 @@ func TestProcess_AlreadyCompleted(t *testing.T) {
 		t.Fatalf("error = %v, want completed -> processing transition error", err)
 	}
 
-	// The rejected operation must leave the task untouched.
 	stored, _ := svc.Get(created.ID)
-	// stored != first would compare Result pointers (different copies), so
-	// compare the state and the result contents instead.
 	if stored.State != first.State || stored.Result == nil || !stored.Result.Equal(*first.Result) {
 		t.Fatalf("task changed after rejected reprocess:\n got  %+v\n want %+v", stored, first)
 	}
@@ -209,13 +195,11 @@ func TestProcess_ProcessorError_SetsFailed(t *testing.T) {
 		t.Fatalf("got %+v, want failed task with error message and no result", failed)
 	}
 
-	// A failed task is terminal: processing it again is an invalid transition.
 	if _, err := svc.Process(created.ID); !errors.Is(err, task.ErrInvalidTransition) {
 		t.Fatalf("reprocess failed task: error = %v, want ErrInvalidTransition", err)
 	}
 }
 
-// Requirement 9: multiple tasks are independent of each other.
 func TestMultipleTasks_Independent(t *testing.T) {
 	svc := newTestService(t)
 	a, err := svc.Create("one two three")
@@ -230,7 +214,6 @@ func TestMultipleTasks_Independent(t *testing.T) {
 		t.Fatalf("tasks share ID %s", a.ID)
 	}
 
-	// Processing a must not touch b.
 	if _, err := svc.Process(a.ID); err != nil {
 		t.Fatal(err)
 	}
